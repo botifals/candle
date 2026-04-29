@@ -1,0 +1,26 @@
+name: Update Candle Yahoo
+
+on:
+  schedule:
+    - cron: "* * * * *"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+
+      - run: pip install requests
+
+      - run: python update.py
+
+      - name: Commit JSON
+        run: |
+          git config --global user.name "bot"
+          git config --global user.email "bot@email.com"
+          git add data.json
+          git commit -m "update candle" || echo "no change"
+          git push
