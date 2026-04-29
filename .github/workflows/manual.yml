@@ -18,6 +18,13 @@ jobs:
 
       - run: python update.py
 
+      # 🔥 WAJIB TAMBAH INI
+      - name: Ensure JSON exists
+        run: |
+          if [ ! -f data.json ]; then
+            echo "[]" > data.json
+          fi
+
       - name: Commit JSON
         run: |
           git config --global user.name "bot"
