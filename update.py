@@ -35,10 +35,10 @@ for url in urls:
 
                 candles.append({
                     "time": timestamps[i],
-                    "open": o,
-                    "high": h,
-                    "low": l,
-                    "close": c
+                    "open": f"{o:.5f}",
+"high": f"{h:.5f}",
+"low": f"{l:.5f}",
+"close": f"{c:.5f}"
                 })
 
             if len(candles) > 0:
