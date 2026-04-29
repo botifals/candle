@@ -4,14 +4,20 @@ import json
 symbol = "EURUSD=X"
 url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d"
 
-res = requests.get(url).json()
-
-# cek error
-if res["chart"]["result"] is None:
-    print("Error ambil data")
+try:
+    res = requests.get(url)
+    data = res.json()
+except Exception as e:
+    print("Error request:", e)
     exit()
 
-result = res["chart"]["result"][0]
+# cek data kosong
+if data.get("chart", {}).get("result") is None:
+    print("Data kosong dari Yahoo")
+    print(data)
+    exit()
+
+result = data["chart"]["result"][0]
 timestamps = result["timestamp"]
 quotes = result["indicators"]["quote"][0]
 
@@ -29,8 +35,9 @@ for i in range(len(timestamps)):
         "close": quotes["close"][i]
     })
 
-# ambil 500 candle terakhir
 candles = candles[-500:]
 
 with open("data.json", "w") as f:
     json.dump(candles, f)
+
+print("SUCCESS BUAT JSON")
