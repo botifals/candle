@@ -1,27 +1,42 @@
-name: Update Candle Yahoo
+import requests
+import json
 
-on:
-  schedule:
-    - cron: "* * * * *"
-  workflow_dispatch:
+symbol = "EURUSD=X"
+url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d"
 
-jobs:
-  update:
-    runs-on: ubuntu-latest
+candles = []
 
-    steps:
-      - uses: actions/checkout@v3
+try:
+    res = requests.get(url)
+    data = res.json()
 
-      - uses: actions/setup-python@v4
+    if data.get("chart", {}).get("result"):
+        result = data["chart"]["result"][0]
+        timestamps = result["timestamp"]
+        quotes = result["indicators"]["quote"][0]
 
-      - run: pip install requests
+        for i in range(len(timestamps)):
+            if quotes["open"][i] is None:
+                continue
 
-      - run: python update.py
+            candles.append({
+                "time": timestamps[i],
+                "open": quotes["open"][i],
+                "high": quotes["high"][i],
+                "low": quotes["low"][i],
+                "close": quotes["close"][i]
+            })
 
-      - name: Commit JSON
-        run: |
-          git config --global user.name "bot"
-          git config --global user.email "bot@email.com"
-          git add data.json
-          git commit -m "update candle" || echo "no change"
-          git push
+        candles = candles[-500:]
+
+    else:
+        print("Data kosong dari Yahoo")
+
+except Exception as e:
+    print("Error:", e)
+
+# 🔥 WAJIB: tetap buat file walaupun kosong
+with open("data.json", "w") as f:
+    json.dump(candles, f)
+
+print("DONE, jumlah candle:", len(candles))
