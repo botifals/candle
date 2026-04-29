@@ -2,42 +2,55 @@ import requests
 import json
 
 symbol = "EURUSD=X"
-url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d"
 
-try:
-    res = requests.get(url)
-    data = res.json()
-except Exception as e:
-    print("Error request:", e)
-    exit()
+urls = [
+    f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=1d",
+    f"https://query2.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1m&range=2d"
+]
 
-# cek data kosong
-if data.get("chart", {}).get("result") is None:
-    print("Data kosong dari Yahoo")
-    print(data)
-    exit()
-
-result = data["chart"]["result"][0]
-timestamps = result["timestamp"]
-quotes = result["indicators"]["quote"][0]
+headers = {
+    "User-Agent": "Mozilla/5.0"
+}
 
 candles = []
 
-for i in range(len(timestamps)):
-    if quotes["open"][i] is None:
-        continue
+for url in urls:
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        data = res.json()
 
-    candles.append({
-        "time": timestamps[i],
-        "open": quotes["open"][i],
-        "high": quotes["high"][i],
-        "low": quotes["low"][i],
-        "close": quotes["close"][i]
-    })
+        if data.get("chart", {}).get("result"):
+            result = data["chart"]["result"][0]
+            timestamps = result.get("timestamp", [])
+            quotes = result["indicators"]["quote"][0]
 
+            for i in range(len(timestamps)):
+                o = quotes["open"][i]
+                h = quotes["high"][i]
+                l = quotes["low"][i]
+                c = quotes["close"][i]
+
+                if o is None or h is None or l is None or c is None:
+                    continue
+
+                candles.append({
+                    "time": timestamps[i],
+                    "open": o,
+                    "high": h,
+                    "low": l,
+                    "close": c
+                })
+
+            if len(candles) > 0:
+                break
+
+    except Exception as e:
+        print("Error:", e)
+
+# ambil 500 terakhir
 candles = candles[-500:]
 
 with open("data.json", "w") as f:
     json.dump(candles, f)
 
-print("SUCCESS BUAT JSON")
+print("TOTAL CANDLE:", len(candles))
