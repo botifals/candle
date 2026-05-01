@@ -43,7 +43,7 @@ function formatCandles(candles) {
     high: parseFloat(c.high),
     low: parseFloat(c.low),
     close: parseFloat(c.close),
-    volume: parseInt(c.precision || 0)
+    volume: parseFloat(c.vol || 0)
   })).slice(-500);
 }
 
@@ -54,12 +54,12 @@ function generateWeeklyFromDaily(daily) {
     const chunk = daily.slice(i, i + 7);
     if (chunk.length > 0) {
       weekly.push({
-        time: chunk[0].epoch,
-        open: parseFloat(chunk[0].open),
-        high: Math.max(...chunk.map(d => parseFloat(d.high))),
-        low: Math.min(...chunk.map(d => parseFloat(d.low))),
-        close: parseFloat(chunk[chunk.length - 1].close),
-        volume: chunk.reduce((sum, d) => sum + (parseInt(d.precision) || 0), 0)
+        time: chunk[0].time,
+        open: chunk[0].open,
+        high: Math.max(...chunk.map(d => d.high)),
+        low: Math.min(...chunk.map(d => d.low)),
+        close: chunk[chunk.length - 1].close,
+        volume: chunk.reduce((sum, d) => sum + (d.volume || 0), 0)
       });
     }
   }
