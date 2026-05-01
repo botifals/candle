@@ -5,6 +5,10 @@ on:
     - cron: '* * * * *' # Setiap menit
   workflow_dispatch:
 
+concurrency:
+  group: update-ohlc
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -14,7 +18,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Wajib untuk Rebase
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -32,14 +36,18 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Fetch latest changes from remote FIRST
+          # Fetch latest changes dari remote
           git fetch origin main
-          git rebase origin/main
+          
+          # Cek apakah ada perubahan sebelum rebase
+          if ! git diff HEAD origin/main --quiet; then
+            git rebase origin/main
+          fi
           
           git add data.json
           
           # Hanya commit jika ada perubahan data
-          if ! git diff --cached --exit-code; then
+          if ! git diff --cached --exit-code > /dev/null 2>&1; then
             git commit -m "Update OHLC: $(date)"
             git push origin main
           else
