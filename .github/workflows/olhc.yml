@@ -36,20 +36,22 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Fetch latest changes dari remote
-          git fetch origin main
-          
-          # Cek apakah ada perubahan sebelum rebase
-          if ! git diff HEAD origin/main --quiet; then
-            git rebase origin/main
-          fi
-          
           git add data.json
           
           # Hanya commit jika ada perubahan data
           if ! git diff --cached --exit-code > /dev/null 2>&1; then
             git commit -m "Update OHLC: $(date)"
-            git push origin main
+            
+            # Fetch latest changes dan rebase
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "Rebase conflict, akan coba lagi di run berikutnya"
+              exit 0
+            fi
+            
+            # Push dengan force-with-lease untuk handle race condition
+            git push origin main --force-with-lease || echo "Push failed, another run might have pushed first"
           else
             echo "No changes detected."
           fi
