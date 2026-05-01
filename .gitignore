@@ -1,2 +1,9 @@
+# Abaikan semua file skrip dan folder sistem
+*.js
+*.sh
 node_modules/
-package-lock.json
+.env
+*.log
+
+# JANGAN abaikan file JSON (artinya hanya JSON yang dipantau)
+!*.json
