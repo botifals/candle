@@ -32,16 +32,15 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
+          # Fetch latest changes from remote FIRST
+          git fetch origin main
+          git rebase origin/main
+          
           git add data.json
           
           # Hanya commit jika ada perubahan data
           if ! git diff --cached --exit-code; then
             git commit -m "Update OHLC: $(date)"
-            
-            # Tarik perubahan terbaru dari GitHub dan tempelkan commit kita di atasnya
-            git pull origin main --rebase
-            
-            # Push ke main
             git push origin main
           else
             echo "No changes detected."
