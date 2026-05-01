@@ -1,20 +1,22 @@
 #!/bin/bash
-# Masuk ke folder
 cd /root/candle
 
-# 1. Jalankan Node.js untuk ambil data terbaru
-/usr/bin/node /root/candle/olhc.js
+# 1. Ambil info terbaru tanpa menggabungkan (fetch saja)
+git fetch origin main
 
-# 2. Masukkan ke staging
-git add /root/candle/data.json
+# 2. Jalankan Node.js untuk update data.json
+/usr/bin/node /root/candle/R_100.js
 
-# 3. Commit dan Push jika ada perubahan
+# 3. Paksa commit dan paksa push
+git add R_100.json
 if ! git diff --cached --exit-code > /dev/null; then
     git commit -m "Update OHLC: $(date)"
-    # Ambil update terbaru dari github (rebase) lalu push
-    git pull origin main --rebase
-    git push origin main
-    echo "Update Berhasil: $(date)"
+    
+    # KUNCI UTAMA: Paksa GitHub mengikuti apa yang ada di VPS
+    # Ini menghilangkan error 'rejected' dan 'divergent branches'
+    git push origin main --force
+    
+    echo "Update Berhasil dipaksa ke GitHub: $(date)"
 else
-    echo "Data stabil, tidak ada perubahan."
+    echo "Data sama, tidak ada perubahan."
 fi
