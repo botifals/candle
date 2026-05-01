@@ -1,10 +1,12 @@
 const WebSocket = require('ws');
 const fs = require('fs');
+const { execSync } = require('child_process');
 const path = require('path');
 
 const APP_ID = 1089;
 const SYMBOL = "R_100";
 const DATA_FILE = 'data.json';
+const GIT_PUSH_INTERVAL = 30000; // Push ke GitHub setiap 30 detik
 
 // Initial data structure
 let finalData = {
@@ -17,6 +19,9 @@ let finalData = {
   ohlc: {}
 };
 
+let lastGitPush = Date.now();
+let hasChanges = false;
+
 // Load existing data if available
 function loadExistingData() {
   try {
@@ -24,10 +29,10 @@ function loadExistingData() {
       const fileContent = fs.readFileSync(DATA_FILE, 'utf8');
       const saved = JSON.parse(fileContent);
       finalData.ohlc = saved.ohlc || {};
-      console.log('Loaded existing OHLC data');
+      console.log(`[${new Date().toISOString()}] Loaded existing OHLC data`);
     }
   } catch (err) {
-    console.error('Error loading existing data:', err.message);
+    console.error(`[${new Date().toISOString()}] Error loading existing data:`, err.message);
   }
 }
 
@@ -35,8 +40,39 @@ function loadExistingData() {
 function saveData() {
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(finalData, null, 2));
+    hasChanges = true;
   } catch (err) {
-    console.error('Error saving data:', err.message);
+    console.error(`[${new Date().toISOString()}] Error saving data:`, err.message);
+  }
+}
+
+// Push to GitHub
+function pushToGitHub() {
+  try {
+    if (!hasChanges) {
+      console.log(`[${new Date().toISOString()}] No changes, skipping git push`);
+      return;
+    }
+
+    console.log(`[${new Date().toISOString()}] Pushing to GitHub...`);
+    
+    // Git commands
+    execSync('git add data.json', { cwd: '/root/candle', stdio: 'pipe' });
+    execSync(`git commit -m "Auto-update OHLC: ${new Date().toISOString()}"`, { 
+      cwd: '/root/candle',
+      stdio: 'pipe'
+    }).toString();
+    execSync('git push origin main', { cwd: '/root/candle', stdio: 'pipe' });
+    
+    hasChanges = false;
+    console.log(`[${new Date().toISOString()}] ✅ Successfully pushed to GitHub`);
+  } catch (err) {
+    if (err.message.includes('nothing to commit')) {
+      console.log(`[${new Date().toISOString()}] No changes to commit`);
+      hasChanges = false;
+    } else {
+      console.error(`[${new Date().toISOString()}] ❌ Git push error:`, err.message);
+    }
   }
 }
 
@@ -73,7 +109,7 @@ function connectWebSocket() {
         finalData.current_price = res.tick.quote;
         
         saveData();
-        console.log(`[${new Date().toISOString()}] Tick: ${res.tick.quote}`);
+        console.log(`[${new Date().toISOString()}] 📊 Tick: ${res.tick.quote}`);
       }
       
       // Handle subscribe confirmation
@@ -96,6 +132,7 @@ function connectWebSocket() {
   
   ws.on('close', () => {
     console.log(`[${new Date().toISOString()}] WebSocket closed, reconnecting in 5 seconds...`);
+    pushToGitHub(); // Push terakhir sebelum disconnect
     setTimeout(connectWebSocket, 5000);
   });
   
@@ -104,22 +141,28 @@ function connectWebSocket() {
     console.log(`[${new Date().toISOString()}] Shutting down gracefully...`);
     ws.close();
     saveData();
+    pushToGitHub(); // Push terakhir
     process.exit(0);
   });
 }
 
 // Start the listener
-console.log(`[${new Date().toISOString()}] Starting OHLC Real-time Listener`);
+console.log(`[${new Date().toISOString()}] Starting OHLC Real-time Listener with GitHub Push`);
 loadExistingData();
 connectWebSocket();
+
+// Push to GitHub setiap interval
+setInterval(() => {
+  pushToGitHub();
+}, GIT_PUSH_INTERVAL);
 
 // Save data every 30 seconds (periodic backup)
 setInterval(() => {
   saveData();
-  console.log(`[${new Date().toISOString()}] Data saved (periodic backup)`);
+  console.log(`[${new Date().toISOString()}] 💾 Data saved (periodic backup)`);
 }, 30000);
 
 // Log status every minute
 setInterval(() => {
-  console.log(`[${new Date().toISOString()}] Status: Last price = ${finalData.current_price || 'waiting...'}`);
+  console.log(`[${new Date().toISOString()}] 📈 Status: Last price = ${finalData.current_price || 'waiting...'}`);
 }, 60000);
