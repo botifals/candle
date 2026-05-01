@@ -1,23 +1,21 @@
-      - name: Push Data
+- name: Push Data
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Fetch the latest changes first
-          git fetch origin main
-          
-          # Add file
+          # 1. Pastikan file masuk ke staging
           git add data.json
           
-          # Check if there are changes to commit
+          # 2. Cek apakah ada perubahan nyata
           if ! git diff --cached --exit-code; then
-            # Rebase on the latest remote changes
-            git rebase origin/main
-            
-            # Commit
+            # 3. Buat commit lokal dulu
             git commit -m "Update OHLC: $(date)"
             
-            # Push to main
+            # 4. Tarik perubahan terbaru dan susun ulang commit kita di atasnya (Rebase)
+            # Ini akan menarik perubahan dari run sebelumnya yang mungkin sudah selesai
+            git pull origin main --rebase
+            
+            # 5. Push ke main
             git push origin main
           else
             echo "No changes detected."
