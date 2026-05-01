@@ -1,22 +1,37 @@
 #!/bin/bash
+
+# 1. Masuk ke direktori kerja
 cd /root/candle
 
-# 1. Ambil info terbaru tanpa menggabungkan (fetch saja)
+# 2. Bersihkan sisa-sisa perubahan lokal agar sinkron dengan GitHub
 git fetch origin main
+git checkout *.json 2>/dev/null || true
 
-# 2. Jalankan Node.js untuk update data.json
-/usr/bin/node /root/candle/R_100.js
+echo "--- Memulai Update 40 Pair Serentak: $(date) ---"
 
-# 3. Paksa commit dan paksa push
-git add R_100.json
+# 3. Eksekusi Paralel (Semua .js jalan sekaligus)
+for script in *.js; do
+    if [ -f "$script" ]; then
+        # Tanda '&' di bawah ini yang membuat skrip jalan tanpa antre (background)
+        /usr/bin/node "$script" & 
+    fi
+done
+
+# 4. Tunggu sampai semua proses Node.js di atas selesai
+wait
+
+# 5. Tambahkan semua JSON yang terupdate
+git add *.json
+
+# 6. Push ke GitHub (Menggunakan --amend agar history tetap tipis)
 if ! git diff --cached --exit-code > /dev/null; then
-    git commit -m "Update OHLC: $(date)"
+    # Menghapus history lama dan mengganti dengan yang baru
+    git commit --amend -m "Flash Update: $(date)" || git commit -m "Flash Update: $(date)"
     
-    # KUNCI UTAMA: Paksa GitHub mengikuti apa yang ada di VPS
-    # Ini menghilangkan error 'rejected' dan 'divergent branches'
+    # Force push agar proses instan tanpa konflik
     git push origin main --force
     
-    echo "Update Berhasil dipaksa ke GitHub: $(date)"
+    echo "--- SEMUA DATA TERKIRIM KE GITHUB ---"
 else
-    echo "Data sama, tidak ada perubahan."
+    echo "--- Tidak ada perubahan data harga. ---"
 fi
