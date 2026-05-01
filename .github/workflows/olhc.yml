@@ -1,48 +1,23 @@
-name: Update OHLC JSON
-
-on:
-  schedule:
-    - cron: '* * * * *'
-  workflow_dispatch:
-
-jobs:
-  update:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-
-      - name: Install WS
-        run: npm install ws
-
-      - name: Run Script
-        run: node olhc.js
-
       - name: Push Data
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Tambahkan file
+          # Fetch the latest changes first
+          git fetch origin main
+          
+          # Add file
           git add data.json
           
-          # Commit jika ada perubahan
+          # Check if there are changes to commit
           if ! git diff --cached --exit-code; then
+            # Rebase on the latest remote changes
+            git rebase origin/main
+            
+            # Commit
             git commit -m "Update OHLC: $(date)"
             
-            # Tarik perubahan terbaru dan gabungkan (Rebase)
-            git pull origin main --rebase
-            
-            # Push ke main
+            # Push to main
             git push origin main
           else
             echo "No changes detected."
