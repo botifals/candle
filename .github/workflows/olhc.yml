@@ -1,21 +1,47 @@
-- name: Push Data
+name: Update OHLC JSON
+
+on:
+  schedule:
+    - cron: '* * * * *' # Setiap menit
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Wajib untuk Rebase
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install WS
+        run: npm install ws
+
+      - name: Run Script
+        run: node olhc.js
+
+      - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # 1. Pastikan file masuk ke staging
           git add data.json
           
-          # 2. Cek apakah ada perubahan nyata
+          # Hanya commit jika ada perubahan data
           if ! git diff --cached --exit-code; then
-            # 3. Buat commit lokal dulu
             git commit -m "Update OHLC: $(date)"
             
-            # 4. Tarik perubahan terbaru dan susun ulang commit kita di atasnya (Rebase)
-            # Ini akan menarik perubahan dari run sebelumnya yang mungkin sudah selesai
+            # Tarik perubahan terbaru dari GitHub dan tempelkan commit kita di atasnya
             git pull origin main --rebase
             
-            # 5. Push ke main
+            # Push ke main
             git push origin main
           else
             echo "No changes detected."
