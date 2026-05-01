@@ -1,13 +1,13 @@
 {
-  "last_update": "2026-05-01T03:37:46.454Z",
+  "last_update": "2026-05-01T03:41:34.385Z",
   "symbol": "R_100",
-  "current_price": 633.81,
+  "current_price": 634.91,
   "bid": null,
   "ask": null,
   "last_tick": {
-    "epoch": 1777606666,
-    "quote": 633.81,
-    "timestamp": "2026-05-01T03:37:46.000Z"
+    "epoch": 1777606894,
+    "quote": 634.91,
+    "timestamp": "2026-05-01T03:41:34.000Z"
   },
   "ohlc": {
     "M1": [
