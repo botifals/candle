@@ -2,20 +2,19 @@ name: Update OHLC JSON
 
 on:
   schedule:
-    - cron: '* * * * *' # Berjalan otomatis setiap menit
-  workflow_dispatch: # Tombol manual untuk testing
+    - cron: '* * * * *'
+  workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write 
+      contents: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
         with:
-          # Mengambil riwayat commit agar proses fetch & reset berjalan lancar
-          fetch-depth: 0 
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -26,29 +25,25 @@ jobs:
         run: npm install ws
 
       - name: Run Script
-        # Pastikan nama file ini sesuai dengan file Node.js Anda
         run: node olhc.js
 
-      - name: Commit and Push JSON
+      - name: Push Data
         run: |
-          # Konfigurasi Identitas Bot
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Paksa sinkronisasi dengan remote (Fetch & Reset)
-          # Ini kunci agar tidak terjadi error "rejected (fetch first)"
-          git fetch origin main
-          git reset --soft origin main
-          
-          # Tambahkan data terbaru hasil eksekusi node
+          # Tambahkan file
           git add data.json
           
-          # Commit hanya jika ada perubahan konten pada data.json
+          # Commit jika ada perubahan
           if ! git diff --cached --exit-code; then
             git commit -m "Update OHLC: $(date)"
             
-            # --force-with-lease adalah cara aman untuk push paksa tanpa merusak repo
-            git push --force-with-lease origin main
+            # Tarik perubahan terbaru dan gabungkan (Rebase)
+            git pull origin main --rebase
+            
+            # Push ke main
+            git push origin main
           else
-            echo "Tidak ada perubahan data, skip push."
+            echo "No changes detected."
           fi
