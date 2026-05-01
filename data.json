@@ -1,17 +1,22 @@
 {
-  "last_update": "2026-05-01T04:34:20.414Z",
+  "last_update": "2026-05-01T04:34:23.398Z",
   "symbol": "R_100",
-  "current_price": 635.32,
+  "current_price": 635.26,
   "last_tick": {
-    "epoch": 1777610060,
-    "quote": 635.32,
-    "timestamp": "2026-05-01T04:34:20.000Z"
+    "epoch": 1777610062,
+    "quote": 635.26,
+    "timestamp": "2026-05-01T04:34:22.000Z"
   },
   "ticks": [
     {
       "epoch": 1777610060,
       "quote": 635.32,
       "timestamp": "2026-05-01T04:34:20.000Z"
+    },
+    {
+      "epoch": 1777610062,
+      "quote": 635.26,
+      "timestamp": "2026-05-01T04:34:22.000Z"
     }
   ]
 }
