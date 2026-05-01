@@ -3,15 +3,9 @@ const fs = require('fs');
 
 const APP_ID = 1089; 
 const SYMBOL = "R_100";
-// Daftar timeframe yang diminta (W1 akan diproses manual dari D1)
 const TIMEFRAMES = {
-  "M1": 60,
-  "M5": 300,
-  "M15": 900,
-  "M30": 1800,
-  "H1": 3600,
-  "H4": 14400,
-  "D1": 86400
+  "M1": 60, "M5": 300, "M15": 900, "M30": 1800,
+  "H1": 3600, "H4": 14400, "D1": 86400
 };
 
 const finalData = {
@@ -21,15 +15,16 @@ const finalData = {
 };
 
 async function fetchOHLC() {
+  // Ambil data M1 sampai D1 dari API
   for (const [name, seconds] of Object.entries(TIMEFRAMES)) {
     console.log(`Fetching ${name}...`);
     try {
       const rawCandles = await getCandles(seconds);
       finalData.ohlc[name] = formatCandles(rawCandles);
       
-      // Jika ini data D1, buat data W1 secara manual
+      // Khusus D1, rakit W1 secara manual
       if (name === "D1") {
-        console.log("Generating W1 from D1 data...");
+        console.log("Generating W1 from D1...");
         finalData.ohlc["W1"] = generateWeeklyFromDaily(rawCandles);
       }
     } catch (err) {
@@ -38,11 +33,10 @@ async function fetchOHLC() {
   }
 
   fs.writeFileSync('data.json', JSON.stringify(finalData, null, 2));
-  console.log("JSON Updated: M1 to W1 (500 bars each)");
+  console.log("JSON Updated successfully!");
   process.exit(0);
 }
 
-// Fungsi untuk memastikan struktur: time, open, high, low, close, volume
 function formatCandles(candles) {
   return candles.map(c => ({
     time: c.epoch,
@@ -50,16 +44,14 @@ function formatCandles(candles) {
     high: parseFloat(c.high),
     low: parseFloat(c.low),
     close: parseFloat(c.close),
-    volume: parseInt(c.precision) // Deriv tidak punya volume asli di R_100, precision digunakan sebagai placeholder/tick count
-  })).slice(-500); // Ambil 500 terbaru
+    volume: parseInt(c.precision || 0)
+  })).slice(-500);
 }
 
-// Logika Resampling D1 ke W1
-function generateWeeklyFromDaily(dailyCandles) {
+function generateWeeklyFromDaily(daily) {
   const weekly = [];
-  // Kelompokkan daily menjadi per 7 hari (asumsi Deriv berjalan 24/7)
-  for (let i = 0; i < dailyCandles.length; i += 7) {
-    const chunk = dailyCandles.slice(i, i + 7);
+  for (let i = 0; i < daily.length; i += 7) {
+    const chunk = daily.slice(i, i + 7);
     if (chunk.length > 0) {
       weekly.push({
         time: chunk[0].epoch,
@@ -80,19 +72,17 @@ function getCandles(granularity) {
     ws.on('open', () => {
       ws.send(JSON.stringify({
         "ticks_history": SYMBOL,
-        "count": 1000, // Ambil lebih banyak untuk cadangan resampling W1
+        "count": 1000, // Ambil 1000 untuk D1 agar W1 cukup datanya
         "end": "latest",
         "granularity": granularity,
         "style": "candles"
       }));
     });
-
     ws.on('message', (data) => {
       const res = JSON.parse(data);
       if (res.error) { ws.close(); reject(res.error.message); }
       if (res.candles) { ws.close(); resolve(res.candles); }
     });
-
     ws.on('error', (err) => { ws.close(); reject(err); });
     setTimeout(() => { ws.close(); reject("Timeout"); }, 15000);
   });
