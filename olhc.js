@@ -15,14 +15,13 @@ const finalData = {
 };
 
 async function fetchOHLC() {
-  // Ambil data M1 sampai D1 dari API
   for (const [name, seconds] of Object.entries(TIMEFRAMES)) {
     console.log(`Fetching ${name}...`);
     try {
       const rawCandles = await getCandles(seconds);
       finalData.ohlc[name] = formatCandles(rawCandles);
       
-      // Khusus D1, rakit W1 secara manual
+      // Jika D1 berhasil, rakit W1 secara manual untuk menghindari error API
       if (name === "D1") {
         console.log("Generating W1 from D1...");
         finalData.ohlc["W1"] = generateWeeklyFromDaily(rawCandles);
@@ -33,7 +32,7 @@ async function fetchOHLC() {
   }
 
   fs.writeFileSync('data.json', JSON.stringify(finalData, null, 2));
-  console.log("JSON Updated successfully!");
+  console.log("JSON Updated: M1 to W1 (500 bars each)");
   process.exit(0);
 }
 
@@ -50,6 +49,7 @@ function formatCandles(candles) {
 
 function generateWeeklyFromDaily(daily) {
   const weekly = [];
+  // Resampling 7 hari menjadi 1 minggu
   for (let i = 0; i < daily.length; i += 7) {
     const chunk = daily.slice(i, i + 7);
     if (chunk.length > 0) {
@@ -72,7 +72,7 @@ function getCandles(granularity) {
     ws.on('open', () => {
       ws.send(JSON.stringify({
         "ticks_history": SYMBOL,
-        "count": 1000, // Ambil 1000 untuk D1 agar W1 cukup datanya
+        "count": 1000, 
         "end": "latest",
         "granularity": granularity,
         "style": "candles"
